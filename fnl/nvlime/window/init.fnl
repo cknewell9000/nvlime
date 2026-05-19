@@ -362,8 +362,8 @@ window's id and buffer number of the attached buffer to it."
                     {:style "minimal"
                      :border options.floating_window.border
                      :zindex zindex}))]
-      (add-scrollbar (pwin.get-info winid)
-                     (pwin.get-zindex winid))
+      ; (add-scrollbar (pwin.get-info winid)
+      ;                (pwin.get-zindex winid))
       (when close-on-leave?
         (nvim_create_autocmd "WinLeave"
           {:buffer bufnr

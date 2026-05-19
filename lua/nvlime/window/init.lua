@@ -314,7 +314,7 @@ window["open-float"] = function(bufnr, opts, close_on_leave_3f, focus_3f, callba
     end
   end
   local winid = nvim_open_win(bufnr, focus_3f, vim.tbl_extend("keep", opts, {style = "minimal", border = options.floating_window.border, zindex = zindex}))
-  add_scrollbar(pwin["get-info"](winid), pwin["get-zindex"](winid))
+  -- add_scrollbar(pwin["get-info"](winid), pwin["get-zindex"](winid))
   if close_on_leave_3f then
     local function _39_()
       return window["close-float"](winid)
