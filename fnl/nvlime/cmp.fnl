@@ -50,9 +50,9 @@
 (local get-lsp-kind
        (if +fuzzy?+
            (fn [item]
-             (let [flags (. item 4)]
+             (let [flags (. item 2)]
                {:label (psl.first item)
-               :labelDetails {:detail flags}
+               ; :labelDetails {:detail flags} ;; disable completion details
                :kind (or (flags->kind flags)
                          lsp-types.CompletionItemKind.Keyword)}))
            #{:label $}))

@@ -38,8 +38,8 @@ end
 local get_lsp_kind
 if _2bfuzzy_3f_2b then
   local function _5_(item)
-    local flags = item[4]
-    return {label = psl.first(item), labelDetails = {detail = flags}, kind = (flags__3ekind(flags) or lsp_types.CompletionItemKind.Keyword)}
+    local flags = item[2]
+    return {label = psl.first(item), kind = (flags__3ekind(flags) or lsp_types.CompletionItemKind.Keyword)}
   end
   get_lsp_kind = _5_
 else
@@ -70,17 +70,17 @@ source.complete = function(self, params, callback)
   local on_done
   local function _10_(candidates)
     local function _11_()
-      local tbl_18_auto = {}
-      local i_19_auto = 0
+      local tbl_26_ = {}
+      local i_27_ = 0
       for _, c in ipairs((candidates or {})) do
-        local val_20_auto = get_lsp_kind(c)
-        if (nil ~= val_20_auto) then
-          i_19_auto = (i_19_auto + 1)
-          do end (tbl_18_auto)[i_19_auto] = val_20_auto
+        local val_28_ = get_lsp_kind(c)
+        if (nil ~= val_28_) then
+          i_27_ = (i_27_ + 1)
+          tbl_26_[i_27_] = val_28_
         else
         end
       end
-      return tbl_18_auto
+      return tbl_26_
     end
     return callback(_11_())
   end
