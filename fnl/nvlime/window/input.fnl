@@ -90,6 +90,14 @@
                 false
                 #(buf-callback $))
         opts (calc-opts config)]
+
+    ;; this must be done to avoid blocking the debugger
+(nvim_create_autocmd ["WinClosed"]
+      {:group (nvim_create_augroup
+                "custom-callback" {})
+       :buffer bufnr
+       :callback #(vim.cmd "call nvlime#ui#input#FromBufferComplete()")})
+
     (show-history-extmark bufnr)
     (buffer.fill! bufnr lines)
     (let [winid (window.open-float

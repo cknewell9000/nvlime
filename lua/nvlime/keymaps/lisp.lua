@@ -2,6 +2,21 @@ local km = require("nvlime.keymaps")
 local lm = km.mappings.lisp
 local repl = require("nvlime.window.main.repl")
 local lisp = {}
+local function set_compiler_policy()
+  local cur = (vim.g.nvlime_options or vim.empty_dict())
+  local prompt = "compiler_policy.DEBUG (number): "
+  local input = vim.fn.input(prompt)
+  local num = tonumber(input)
+  local val = (num or input)
+  local to_add = {compiler_policy = {DEBUG = val}}
+  local merged = vim.api.nvim_call_function("extend", {cur, to_add})
+  if not num then
+    return vim.notify("Invalid value, must be a number")
+  else
+    vim.api.nvim_set_var("nvlime_options", merged)
+    return vim.notify("Compiler policy set")
+  end
+end
 lisp.add = function()
   km.buffer.insert(lm.insert.space_arglist, "<Space><Cmd>call nvlime#plugin#SpaceEnterKey()<CR>", "nvlime: Trigger the arglist hint")
   km.buffer.insert(lm.insert.cr_arglist, "<CR><Cmd>call nvlime#plugin#SpaceEnterKey()<CR>", "nvlime: Trigger the arglist hint")
@@ -23,10 +38,10 @@ lisp.add = function()
   km.buffer.normal(lm.normal.server.stop_selected, "<Cmd>call nvlime#plugin#StopSelectedServer()<CR>", "nvlime: Show a list of the servers and stop the chosen one")
   km.buffer.normal(lm.normal.server.rename, "<Cmd>call nvlime#plugin#RenameSelectedServer()<CR>", "nvlime: Rename a server")
   km.buffer.normal(lm.normal.server.restart, "<Cmd>call nvlime#plugin#RestartCurrentServer()<CR>", "nvlime: Restart the current server")
-  local function _1_()
+  local function _2_()
     return repl.clear()
   end
-  km.buffer.normal(lm.normal.repl.clear, _1_, "nvlime: Clear the REPL buffer")
+  km.buffer.normal(lm.normal.repl.clear, _2_, "nvlime: Clear the REPL buffer")
   km.buffer.normal(lm.normal.repl.send_atom_expr, "<Cmd>call nvlime#plugin#SendToREPL(nvlime#ui#CurExprOrAtom())<CR>", "nvlime: Send the expression/atom under the cursor to the REPL")
   km.buffer.normal(lm.normal.repl.send_atom, "<Cmd>call nvlime#plugin#SendToREPL(nvlime#ui#CurAtom())<CR>", "nvlime: Send the atom under the cursor to the REPL")
   km.buffer.normal(lm.normal.repl.send_expr, "<Cmd>call nvlime#plugin#SendToREPL(nvlime#ui#CurExpr())<CR>", "nvlime: Send the expression under the cursor to the REPL")
@@ -39,6 +54,7 @@ lisp.add = function()
   km.buffer.normal(lm.normal.compile.expr, "<Cmd>call nvlime#plugin#Compile(nvlime#ui#CurExpr(v:true))<CR>", "nvlime: Compile the expression under the cursor")
   km.buffer.normal(lm.normal.compile.toplevel_expr, "<Cmd>call nvlime#plugin#Compile(nvlime#ui#CurTopExpr(v:true))<CR>", "nvlime: Compile the top-level expression under the cursor")
   km.buffer.normal(lm.normal.compile.file, "<Cmd>call nvlime#plugin#CompileFile(nvim_buf_get_name(0))<CR>", "nvlime: Compile the current file")
+  km.buffer.normal(lm.normal.compile.set_policy, set_compiler_policy, "nvlime: Set policy for the compiler")
   km.buffer.visual(lm.visual.compile.selection, "<Cmd>call nvlime#plugin#Compile(nvlime#ui#CurSelection(v:true))<CR>", "nvlime: Compile the current selection")
   km.buffer.normal(lm.normal.xref["function"].callers, "<Cmd>call nvlime#plugin#XRefSymbol('CALLS', nvlime#ui#CurAtom())<CR>", "nvlime: Show callers of the function under the cursor")
   km.buffer.normal(lm.normal.xref["function"].callees, "<Cmd>call nvlime#plugin#XRefSymbol('CALLS-WHO', nvlime#ui#CurAtom())<CR>", "nvlime: Show callees of the function under the cursor")

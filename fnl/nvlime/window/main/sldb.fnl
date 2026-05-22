@@ -47,8 +47,13 @@
   (let [bufnr (buffer.create-if-not-exists
                 (buffer.gen-sldb-name
                   config.conn-name config.thread)
-                true
+                false
                 #(buf-callback $ config))]
+    ;; need to set the level and frames again
+    (buffer.set-vars
+    bufnr {:nvlime_sldb_level config.level
+           :nvlime_sldb_frames config.frames})
+
     [(main.sldb:open bufnr true) bufnr]))
 
 sldb

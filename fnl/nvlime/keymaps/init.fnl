@@ -56,7 +56,8 @@
                          :expand_all (with-leader "ma")}
                  :compile {:expr (with-leader "ce")
                            :toplevel_expr (with-leader "ct")
-                           :file (with-leader "cf")}
+                           :file (with-leader "cf")
+                           :set_policy (with-leader "cp")}
                  :xref {:function {:callers (with-leader "xc")
                                    :callees (with-leader "xC")}
                         :symbol {:references (with-leader "xr")

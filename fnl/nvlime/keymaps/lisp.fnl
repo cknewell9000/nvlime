@@ -4,6 +4,20 @@
 
 (local lisp {})
 
+(fn set-compiler-policy []
+  (let [cur (or vim.g.nvlime_options (vim.empty_dict))
+        prompt "compiler_policy.DEBUG (number): "
+        input (vim.fn.input prompt)
+        num (tonumber input)
+        val (or num input)
+        to-add {"compiler_policy" {"DEBUG" val}}
+        merged (vim.api.nvim_call_function "extend" [cur to-add])]
+        (if (not num)
+            (vim.notify "Invalid value, must be a number")
+            (do 
+              (vim.api.nvim_set_var "nvlime_options" merged)
+              (vim.notify "Compiler policy set")))))
+
 (fn lisp.add []
   (km.buffer.insert lm.insert.space_arglist
                     "<Space><Cmd>call nvlime#plugin#SpaceEnterKey()<CR>"
@@ -111,6 +125,11 @@
   (km.buffer.normal lm.normal.compile.file
                     "<Cmd>call nvlime#plugin#CompileFile(nvim_buf_get_name(0))<CR>"
                     "nvlime: Compile the current file")
+  ;; WORKAROUND
+  (km.buffer.normal lm.normal.compile.set_policy
+                    set-compiler-policy 
+                    "nvlime: Set policy for the compiler")
+  ;; WORKAROUND
   (km.buffer.visual lm.visual.compile.selection
                     "<Cmd>call nvlime#plugin#Compile(nvlime#ui#CurSelection(v:true))<CR>"
                     "nvlime: Compile the current selection")
