@@ -876,6 +876,63 @@ function! nvlime#ui#GetFiletypeWindowList(ft)
   return winid_list
 endfunction
 
+" Below this, swank's print right margin stops being meaningful: it prints at
+" (width - 10), so a very narrow or momentarily zero-width window would ask
+" for a nonsensical margin.
+let s:min_value_width = 20
+let s:default_value_lines = 6
+
+" Width available in the window nvlime writes evaluation results into, minus
+" the sign/number/fold columns. Falls back to the editor width when no repl
+" window is on screen.
+"
+" Deliberately avoids :windo, unlike @function(nvlime#ui#GetFiletypeWindowList):
+" this runs from inside the input buffer's completion callback, where moving
+" between windows would fire the WinLeave autocmd that closes the input float
+" out from under us.
+function! s:ResultWindowWidth()
+  for winnr in range(1, winnr('$'))
+    if getbufvar(winbufnr(winnr), '&filetype') ==# 'nvlime_repl'
+      let wininfo = getwininfo(win_getid(winnr))
+      let textoff = len(wininfo) > 0 ? get(wininfo[0], 'textoff', 0) : 0
+      let width = winwidth(winnr) - textoff
+      if width > 0
+        return max([s:min_value_width, width])
+      endif
+    endif
+  endfor
+
+  return max([s:min_value_width, &columns])
+endfunction
+
+""
+" @public
+"
+" Return a [<lines>, <width>] pair describing how much room swank has when it
+" formats a value for display.
+"
+" swank's format-values-for-echo-area uses <width> as the print right margin
+" (less a small allowance), and <lines> * <width> as the character budget
+" before it truncates the printed value with " ... ". Sizing them to the
+" window the result is actually written to keeps that wrapping honest,
+" instead of guessing at a terminal width.
+"
+" <lines> comes from |g:nvlime_options.frame_eval.max_lines|.
+function! nvlime#ui#ValueFormatSize()
+  " Tolerate a malformed override: g:nvlime_options is deep-merged from the
+  " user's g:nvlime_config, so a scalar can land where a dict is expected.
+  let opts = get(g:, 'nvlime_options', {})
+  let frame_eval = type(opts) == v:t_dict ? get(opts, 'frame_eval', {}) : {}
+  let max_lines = type(frame_eval) == v:t_dict ?
+        \ get(frame_eval, 'max_lines', s:default_value_lines) :
+        \ s:default_value_lines
+  if type(max_lines) != v:t_number || max_lines < 1
+    let max_lines = s:default_value_lines
+  endif
+
+  return [max_lines, s:ResultWindowWidth()]
+endfunction
+
 ""
 " @public
 "

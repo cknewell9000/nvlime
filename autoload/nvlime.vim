@@ -681,10 +681,22 @@ endfunction
 "
 " When the debugger is active, evaluate {str} in {package}, and within the
 " context of {frame}.
-function! nvlime#EvalStringInFrame(str, frame, package, Callback = v:null) dict
+"
+" swank formats the result for display and needs to be told how much room it
+" has: [lines] and [width] cap the printed value, which swank truncates with
+" " ... " once it exceeds [lines] * [width] characters. Both are required by
+" SWANK:EVAL-STRING-IN-FRAME. When either is omitted they are sized to the
+" window the result will be written to, via
+" @function(nvlime#ui#ValueFormatSize).
+function! nvlime#EvalStringInFrame(str, frame, package, Callback = v:null,
+      \ lines = v:null, width = v:null) dict
+  let [def_lines, def_width] = nvlime#ui#ValueFormatSize()
+  let lines = a:lines is v:null ? def_lines : a:lines
+  let width = a:width is v:null ? def_width : a:width
+
   call self.Send(self.EmacsRex(
         \ [s:SYM('SWANK', 'EVAL-STRING-IN-FRAME'),
-        \ a:str, a:frame, a:package]),
+        \ a:str, a:frame, a:package, lines, width]),
         \ function('nvlime#SimpleSendCB',
         \ [self, a:Callback, 'nvlime#EvalStringInFrame']))
 endfunction
