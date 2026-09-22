@@ -46,17 +46,32 @@ function! nvlime#ui#input#FromBufferComplete()
   let Callback = getbufvar(buf, 'nvlime_input_complete_cb', v:null)
   if Callback is v:null | return | endif
 
-  if len(nvlime#ui#CurBufferContent()) > 0
-    call nvlime#ui#input#SaveHistory(nvlime#ui#CurBufferContent(v:true))
-  endif
-  if mode() == 'i'
-    stopinsert
-  endif
-  call Callback()
+  " Retire the callback *before* running it. Deleting the buffer below wipes
+  " the input window, which fires the WinClosed autocmd that
+  " `nvlime.window.input` registers, which calls us again. Clearing the
+  " variable first turns that second pass into the no-op above, instead of
+  " submitting the same input twice.
+  call setbufvar(buf, 'nvlime_input_complete_cb', v:null)
 
-  if bufloaded(buf)
-    call nvim_buf_delete(buf, { 'force': v:true })
-  endif
+  try
+    if len(nvlime#ui#CurBufferContent()) > 0
+      call nvlime#ui#input#SaveHistory(nvlime#ui#CurBufferContent(v:true))
+    endif
+    if mode() == 'i'
+      stopinsert
+    endif
+    call Callback()
+  finally
+    " Tear the input buffer down even when the callback threw. Its callback
+    " is already retired, so leaving the buffer around would strand the user
+    " in a window whose submit key silently does nothing.
+    if bufloaded(buf)
+      " Errors here are swallowed on purpose: this runs while an exception
+      " from the callback may still be propagating, and that one is the one
+      " worth seeing.
+      silent! call nvim_buf_delete(buf, { 'force': v:true })
+    endif
+  endtry
 endfunction
 
 function! nvlime#ui#input#SaveHistory(text)
