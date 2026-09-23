@@ -161,16 +161,24 @@ function! nvlime#ui#OnWriteString(conn, str, str_type, thread = v:null) dict
   endif
 endfunction
 
+" The Lisp thread is blocked until it gets an answer, so cancelling must
+" still send one. For a read from standard input, cancelling interrupts the
+" thread (SLIME's C-c C-c during a read does the same), which opens the
+" debugger inside the read.
 function! nvlime#ui#OnReadString(conn, thread, ttag) dict
   call nvlime#ui#input#FromBuffer(
         \ a:conn, 'Input string:', v:null,
-        \ function('s:ReadStringInputComplete', [a:thread, a:ttag]))
+        \ function('s:ReadStringInputComplete', [a:thread, a:ttag]),
+        \ { -> a:conn.Interrupt(a:thread)})
 endfunction
 
+" Cancelling returns NIL, which is how READ-FROM-MINIBUFFER-IN-EMACS says the
+" user aborted (an empty string means they entered nothing).
 function! nvlime#ui#OnReadFromMiniBuffer(conn, thread, ttag, prompt, init_val) dict
   call nvlime#ui#input#FromBuffer(
         \ a:conn, a:prompt, a:init_val,
-        \ function('s:ReturnMiniBufferContent', [a:thread, a:ttag]))
+        \ function('s:ReturnMiniBufferContent', [a:thread, a:ttag]),
+        \ { -> a:conn.Return(a:thread, a:ttag, v:null)})
 endfunction
 
 function! nvlime#ui#OnIndentationUpdate(conn, indent_info) dict

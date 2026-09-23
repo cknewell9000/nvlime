@@ -397,8 +397,15 @@ When Nvlime needs user input, a dedicated input window would pop up.
 One can use it to compose any text snippet in it, and then press <CR>
 in insert or normal mode to submit the snippet to Nvlime.
 
-If the operation that brought up the input buffer can be cancelled,
-submitting an empty snippet would usually cancel that operation.
+Closing the input window any other way, e.g. with `q` in normal mode,
+|:q|, or by moving to another window, cancels the operation. When the
+Lisp side is blocked waiting for the input, cancelling still answers
+it: a read from standard input is interrupted (which opens the
+debugger), and a minibuffer prompt gets NIL.
+
+For most prompts, submitting an empty snippet reuses the last item in
+the input history, which is shown greyed out in the empty window. With
+no history, it cancels.
 
 Submitted text snippets are remembered as a linear input history. You
 can move to the previous/next item in history with <C-p>/<C-n>. See
