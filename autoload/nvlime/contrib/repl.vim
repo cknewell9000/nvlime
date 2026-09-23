@@ -36,9 +36,14 @@ endfunction
 " {expr} should be a plain string containing the lisp expression to be
 " evaluated.
 "
+" *PRINT-RIGHT-MARGIN* is bound to [width] during the evaluation, so printed
+" results wrap to the REPL window. It defaults to the width of that window,
+" via @function(nvlime#ui#ResultWindowWidth).
+"
 " This method needs the SWANK-REPL contrib module. See
 " @function(NvlimeConnection.SwankRequire).
-function! nvlime#contrib#repl#ListenerEval(expr, Callback = v:null) dict
+function! nvlime#contrib#repl#ListenerEval(expr, Callback = v:null,
+      \ width = v:null) dict
   function! s:ListenerEvalCB(conn, Cb, chan, msg) abort
     let stat = s:CheckAndReportReturnStatus(a:conn, a:msg,
           \ 'nvlime#contrib#repl#ListenerEval')
@@ -47,8 +52,10 @@ function! nvlime#contrib#repl#ListenerEval(expr, Callback = v:null) dict
     endif
   endfunction
 
+  let width = a:width is v:null ? nvlime#ui#ResultWindowWidth() : a:width
   call self.Send(self.EmacsRex(
-        \ [nvlime#SYM('SWANK-REPL', 'LISTENER-EVAL'), a:expr]),
+        \ [nvlime#SYM('SWANK-REPL', 'LISTENER-EVAL'), a:expr,
+        \ nvlime#KW('WINDOW-WIDTH'), width]),
         \ function('s:ListenerEvalCB', [self, a:Callback]))
 endfunction
 

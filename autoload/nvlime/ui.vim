@@ -894,15 +894,17 @@ endfunction
 let s:min_value_width = 20
 let s:default_value_lines = 6
 
-" Width available in the window nvlime writes evaluation results into, minus
-" the sign/number/fold columns. Falls back to the editor width when no repl
-" window is on screen.
+""
+" @public
 "
-" Deliberately avoids :windo, unlike @function(nvlime#ui#GetFiletypeWindowList):
-" this runs from inside the input buffer's completion callback, where moving
-" between windows would fire the WinLeave autocmd that closes the input float
-" out from under us.
-function! s:ResultWindowWidth()
+" Return the width available in the window nvlime writes evaluation results
+" into, minus the sign/number/fold columns. Falls back to the editor width
+" when no repl window is on screen.
+function! nvlime#ui#ResultWindowWidth()
+  " Deliberately avoids :windo, unlike @function(nvlime#ui#GetFiletypeWindowList):
+  " this runs from inside the input buffer's completion callback, where moving
+  " between windows would fire the WinLeave autocmd that closes the input
+  " float out from under us.
   for winnr in range(1, winnr('$'))
     if getbufvar(winbufnr(winnr), '&filetype') ==# 'nvlime_repl'
       let wininfo = getwininfo(win_getid(winnr))
@@ -942,7 +944,7 @@ function! nvlime#ui#ValueFormatSize()
     let max_lines = s:default_value_lines
   endif
 
-  return [max_lines, s:ResultWindowWidth()]
+  return [max_lines, nvlime#ui#ResultWindowWidth()]
 endfunction
 
 ""
