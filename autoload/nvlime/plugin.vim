@@ -492,10 +492,12 @@ function! nvlime#plugin#ShowOperatorArgList(op = v:null, edit = v:false)
   let conn = nvlime#connection#Get(v:true)
   if conn isnot v:null
     let [operator, default] = s:InputCheckEditFlag(a:edit, a:op)
+    let from_insert = s:InInsertMode()
     call nvlime#ui#input#MaybeInput(
           \ operator,
           \ { op ->
-          \ conn.OperatorArgList(op, function('s:OnOperatorArgListComplete', [op]))},
+          \ conn.OperatorArgList(op,
+          \ function('s:OnOperatorArgListComplete', [op, from_insert]))},
           \ ' Arglist for operator ',
           \ default,
           \ conn)
@@ -528,7 +530,8 @@ function! nvlime#plugin#CurAutodoc()
           let margin -= &numberwidth
         endif
         call conn.Autodoc(quoted_raw_form, margin,
-              \ function('s:OnCurAutodocComplete', [raw_form]))
+              \ function('s:OnCurAutodocComplete',
+              \ [raw_form, s:InInsertMode()]))
       else
         call nvlime#ui#ShowArgList(conn, cached_result)
       endif
@@ -856,6 +859,10 @@ endfunction
 
 let s:key_timer = 0
 function! s:SpaceEnter(id)
+  " The timer can fire after the user has already left insert mode.
+  if !s:InInsertMode()
+    return
+  endif
   if g:nvlime_options.autodoc.enabled
     call nvlime#plugin#CurAutodoc()
   else
@@ -1127,16 +1134,20 @@ function! s:OnSimpleCompletionsComplete(col, cur_pos, conn, result)
   endtry
 endfunction
 
-function! s:OnOperatorArgListComplete(sym, conn, result)
+function! s:OnOperatorArgListComplete(sym, from_insert, conn, result)
   if a:result is v:null | return | endif
+  if s:ArgListIsStale(a:from_insert) | return | endif
 
-  call luaeval('require"nvlime.window.arglist".show(_A)', a:result)
+  call nvlime#ui#ShowArgList(a:conn, a:result)
   let s:last_imode_arglist_op = a:sym
 endfunction
 
-function! s:OnCurAutodocComplete(raw_form, conn, result)
+function! s:OnCurAutodocComplete(raw_form, from_insert, conn, result)
   if type(a:result) == v:t_list && type(a:result[0]) == v:t_string
-    call nvlime#ui#ShowArgList(a:conn, a:result[0])
+    let stale = s:ArgListIsStale(a:from_insert)
+    if !stale
+      call nvlime#ui#ShowArgList(a:conn, a:result[0])
+    endif
     if a:result[1] isnot v:null && a:result[1]
       let autodoc_cache = get(s:, 'autodoc_cache', {})
       let cache_limit = 1024
@@ -1150,7 +1161,9 @@ function! s:OnCurAutodocComplete(raw_form, conn, result)
       let autodoc_cache[string(a:raw_form)] = a:result[0]
       let s:autodoc_cache = autodoc_cache
     endif
-    let s:last_imode_arglist_op = a:raw_form
+    if !stale
+      let s:last_imode_arglist_op = a:raw_form
+    endif
   endif
 endfunction
 
@@ -1349,6 +1362,17 @@ if !exists('s:last_imode_arglist_op')
   let s:last_imode_arglist_op = ''
 endif
 
+function! s:InInsertMode()
+  return mode() =~# '^[iR]'
+endfunction
+
+" An arglist asked for while typing arrives asynchronously, and may do so
+" after the user has pressed <Esc>. Showing it then would leave a popup that
+" nothing closes, since leaving insert mode is what closes it.
+function! s:ArgListIsStale(from_insert)
+  return a:from_insert && !s:InInsertMode()
+endfunction
+
 function! s:NeedToShowArgList(op)
   if !g:nvlime_options.arglist.enabled
     return
@@ -1357,8 +1381,10 @@ function! s:NeedToShowArgList(op)
   " Note that {op} may be a string or a list
   if len(a:op) > 0
     let arglist_buf = bufnr(nvlime#ui#ArgListBufName())
-    let arglist_win_nr = bufwinnr(arglist_buf)
-    let arglist_visible = (arglist_win_nr >= 0)
+    " bufwinid(), not bufwinnr(): the arglist popup is a float opened with
+    " focusable=false, and Neovim gives such windows no window number.
+    let arglist_win = bufwinid(arglist_buf)
+    let arglist_visible = (arglist_win > 0)
     if !arglist_visible || type(a:op) != type(s:last_imode_arglist_op) ||
           \ a:op != s:last_imode_arglist_op
       return !!v:true
@@ -1367,7 +1393,7 @@ function! s:NeedToShowArgList(op)
       if conn is v:null
         " The current buffer doesn't have an active connection.
         " Close the arglist window explicitly, to avoid confusion.
-        execute arglist_win_nr . 'wincmd c'
+        call nvim_win_close(arglist_win, v:true)
         return !!v:false
       else
         " If the current connection is different with the connection

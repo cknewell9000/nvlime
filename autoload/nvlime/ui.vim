@@ -863,7 +863,11 @@ endfunction
 " Show {content} in the arglist buffer. {conn} should be a
 " @dict(NvlimeConnection).
 function! nvlime#ui#ShowArgList(conn, content)
-  call luaeval('require"nvlime.window.arglist".show(_A)', a:content)
+  let [_, bufnr] = luaeval('require"nvlime.window.arglist".show(_A)', a:content)
+  " Record which connection the arglist came from. An open popup is only
+  " reused while it matches the current connection (see s:NeedToShowArgList()
+  " in autoload/nvlime/plugin.vim).
+  call setbufvar(bufnr, 'nvlime_conn', a:conn)
 endfunction
 
 ""
